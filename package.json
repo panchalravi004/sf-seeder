@@ -60,9 +60,11 @@
         "description": "description for seeder",
         "subtopics": {
           "plan": {
-            "description": "description for seeder.plan"
+            "description": "description for seeder.plan",
+            "external": true
           }
-        }
+        },
+        "external": true
       }
     },
     "flexibleTaxonomy": true
