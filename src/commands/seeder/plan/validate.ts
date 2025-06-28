@@ -63,9 +63,9 @@ export default class SeederPlanValidate extends SfCommand<void> {
         }
 
         if (!structureValid || !metadataValid) {
-            this.error('Seeder Validation failed. Fix the above issues.');
+            this.error('❌ Seeder Plan validation failed. Fix the above issues.');
         } else {
-            this.log('Seeder Plan is valid and ready for seeding.');
+            this.log('✅ Seeder Plan is valid and ready for seeding.');
         }
     }
 }

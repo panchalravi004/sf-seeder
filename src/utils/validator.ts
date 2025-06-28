@@ -6,6 +6,7 @@
  */
 import { Connection } from '@salesforce/core';
 import { FieldValue, SeedingStep } from '../types/index.js';
+import { isValidFakerExpression, suggestFakerAlternative } from './faker.js';
 
 export async function validateMetadata(
     plan: SeedingStep[],
@@ -111,6 +112,22 @@ export function validatePlanStructure(
                         hasError = true;
                     } else if (!referenceMap.has(refObj)) {
                         warn(`Step ${index + 1}: Reference "${refObj}" not found in plan.`);
+                        hasError = true;
+                    }
+                }
+
+
+                // Replace #{faker.*.*}
+                if (typeof value === 'string' && value.startsWith('#{faker.') && value.endsWith('}')) {
+                    if (!isValidFakerExpression(value)) {
+                        let message = `Step ${index + 1}: Field "${field}" has invalid faker expression: "${value}"`;
+
+                        const suggestion = suggestFakerAlternative(value);
+                        if (suggestion) {
+                            message += `\n  👉 Did you mean: "${suggestion}"?`;
+                        }
+
+                        warn(message);
                         hasError = true;
                     }
                 }

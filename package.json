@@ -5,6 +5,7 @@
   "author": "@ravi004",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
+    "@faker-js/faker": "^9.8.0",
     "@oclif/core": "^4",
     "@salesforce/core": "^8.14.0",
     "@salesforce/kit": "^3.2.1",

@@ -9,6 +9,7 @@ import * as fs from 'node:fs';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection } from '@salesforce/core';
 import { FieldValue, SeedingStep, SuccessResult } from '../../../types/index.js';
+import { resolveFakerExpression } from '../../../utils/faker.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('@ravi004/sf-seeder', 'seeder.plan.run');
@@ -107,6 +108,9 @@ export default class SeederPlanRun extends SfCommand<void> {
 
     private processValue(value: FieldValue, counter: number, referenceMap: Map<string, SuccessResult[]>): FieldValue {
         if (typeof value !== 'string') return value;
+
+        const fakerResolved: FieldValue = resolveFakerExpression(value, this.warn.bind(this));
+        if (fakerResolved !== null) return fakerResolved;
 
         // Replace #{counter} → number
         const resolved: FieldValue = value.replace(/#\{counter\}/g, (counter + 1).toString());
