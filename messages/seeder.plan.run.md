@@ -14,6 +14,18 @@ The username or alias of the Salesforce org to deploy data to.
 
 This flag specifies the Salesforce organization where the data seeding plan will be executed. You can provide either the org's alias (e.g., `myDevOrg`) or its username (e.g., `testuser@example.com`).
 
+# flags.dryrun.summary
+
+Preview the data to be seeded without inserting into Salesforce.
+
+# flags.save.summary
+
+Save dry run output to a file (e.g., dryrun.json)
+
+# flags.summaryonly.summary
+
+'Show only object/field structure without sample data.'
+
 # flags.plan.summary
 
 The file path to the JSON data seeding plan.

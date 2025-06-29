@@ -8,6 +8,7 @@
 import * as fs from 'node:fs';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection } from '@salesforce/core';
+import chalk from 'chalk';
 import { FieldValue, SeedingStep, SuccessResult } from '../../../types/index.js';
 import { resolveFakerExpression } from '../../../utils/faker.js';
 
@@ -27,6 +28,17 @@ export default class SeederPlanRun extends SfCommand<void> {
         'target-org': Flags.requiredOrg({
             summary: messages.getMessage('flags.target-org.summary'),
         }),
+        dryrun: Flags.boolean({
+            summary: messages.getMessage('flags.dryrun.summary'),
+            default: false,
+        }),
+        save: Flags.string({
+            summary: messages.getMessage('flags.save.summary'),
+        }),
+        summaryonly: Flags.boolean({
+            summary: messages.getMessage('flags.summaryonly.summary'),
+            default: false,
+        }),
         plan: Flags.file({
             summary: messages.getMessage('flags.plan.summary'),
             char: 'p',
@@ -37,47 +49,80 @@ export default class SeederPlanRun extends SfCommand<void> {
 
     public async run(): Promise<void> {
         const { flags } = await this.parse(SeederPlanRun);
-        const conn = flags['target-org'].getConnection();
+
+        const targetOrg = flags['target-org'];
+        const isDryRun = flags['dryrun'];
+        const isDryRunSave = flags['save'];
+        const summaryOnly = flags['summaryonly'];
+        const plans = flags['plan'];
+
+        if (isDryRun) this.log('⚙️  Dry run mode enabled. No records will be created.');
+
+        const conn = targetOrg.getConnection();
         const userInfo = await conn.identity();
 
         this.log(`Connected to org: ${userInfo.username}`);
 
-        const fileContent = fs.readFileSync(flags.plan, 'utf-8');
-        // this.log(`Loaded file content from ${flags.plan}:\n${fileContent}`);
+        const fileContent = fs.readFileSync(plans, 'utf-8');
+        // this.log(`Loaded file content from ${plans}:\n${fileContent}`);
 
         const planList: SeedingStep[] = JSON.parse(fileContent) as SeedingStep[];
 
         this.log('Starting data seeding...');
 
         const referenceMap = new Map<string, SuccessResult[]>();
+        const allDryRunOutput = new Map<string, Array<Record<string, FieldValue>>>();
 
         for (const step of planList) {
-            // eslint-disable-next-line no-await-in-loop
-            await this.processStep(conn, step, referenceMap);
+            if (isDryRun && summaryOnly) {
+                this.log(chalk.magenta(`\n▶ ${step.sobject} (${step.count} records)`));
+                this.log(chalk.gray(`  Fields: ${Object.keys(step.fields).join(', ')}`));
+            } else {
+                // eslint-disable-next-line no-await-in-loop
+                await this.processStep(conn, step, isDryRun, referenceMap, allDryRunOutput);
+            }
         }
 
-        this.log('Data seeding plan completed successfully!');
+        if (isDryRun && !summaryOnly) {
+            const dryRunObj = Object.fromEntries(allDryRunOutput);
+            if (isDryRunSave) {
+                fs.writeFileSync(isDryRunSave, JSON.stringify(dryRunObj, null, 2));
+                this.log(chalk.green(`💾 Dry run output saved to ${isDryRunSave}`));
+            } else {
+                this.log(chalk.green('🧪 Dry run output:'));
+                this.log(JSON.stringify(dryRunObj, null, 2));
+            }
+        }
+
+        this.log(chalk.green('Data seeding plan completed successfully!'));
     }
 
     private async processStep(
         conn: Connection,
         step: SeedingStep,
-        referenceMap: Map<string, SuccessResult[]>
+        isDryRun: boolean,
+        referenceMap: Map<string, SuccessResult[]>,
+        allDryRunOutput: Map<string, Array<Record<string, FieldValue>>>
     ): Promise<void> {
-        this.log(`Inserting ${step.count} record(s) into ${step.sobject}...`);
 
+        this.log(`Inserting ${step.count} record(s) into ${step.sobject}...`);
         const records: Array<Record<string, FieldValue>> = [];
 
         for (let i = 0; i < step.count; i++) {
             const record: Record<string, FieldValue> = {};
             for (const [field, value] of Object.entries(step.fields)) {
-                record[field] = this.processValue(value, i, referenceMap);
+                record[field] = this.processValue(value, i, isDryRun, referenceMap);
             }
             records.push(record);
         }
 
         if (!records.length) {
             this.warn(`No records to create for ${step.sobject}. Skipping...`);
+            return;
+        }
+
+        if (isDryRun) {
+            allDryRunOutput.set(step.sobject, records);
             return;
         }
 
@@ -106,7 +151,7 @@ export default class SeederPlanRun extends SfCommand<void> {
         }
     }
 
-    private processValue(value: FieldValue, counter: number, referenceMap: Map<string, SuccessResult[]>): FieldValue {
+    private processValue(value: FieldValue, counter: number, isDryRun: boolean, referenceMap: Map<string, SuccessResult[]>): FieldValue {
         if (typeof value !== 'string') return value;
 
         const fakerResolved: FieldValue = resolveFakerExpression(value, this.warn.bind(this));
@@ -116,7 +161,7 @@ export default class SeederPlanRun extends SfCommand<void> {
         const resolved: FieldValue = value.replace(/#\{counter\}/g, (counter + 1).toString());
 
         // Replace @{Object.Id}
-        if (resolved.startsWith('@{') && resolved.endsWith('}')) {
+        if (!isDryRun && resolved.startsWith('@{') && resolved.endsWith('}')) {
             const refKey = resolved.slice(2, -1).split('.')[0];
             const refList = referenceMap.get(refKey);
 
