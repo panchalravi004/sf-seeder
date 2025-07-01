@@ -9,15 +9,15 @@ export type FieldValue = string | number | boolean | null;
 
 // Each step in the seeding plan JSON
 export type SeedingStep = {
-    sobject: string; // API name of the object (e.g., "Account")
-    count: number;   // Number of records to create
-    saveRefs?: boolean; // Save references for later use
-    fields: Record<string, FieldValue>; // Field-value mappings
+  sobject: string; // API name of the object (e.g., "Account")
+  count: number; // Number of records to create
+  saveRefs?: boolean; // Save references for later use
+  fields: Record<string, FieldValue>; // Field-value mappings
 };
 
 // Result of a DML operation (used for reference resolution & reporting)
 export type SuccessResult = {
-    success: true | false;
-    id: string;
-    errors: string[];
+  success: true | false;
+  id: string;
+  errors: string[];
 };

@@ -4,8 +4,9 @@
  * Licensed under the BSD 3-Clause license.
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { faker } from '@faker-js/faker';
+import inquirer from 'inquirer';
+import { Field } from 'jsforce';
 
 export function resolveFakerExpression(value: string, warn: (msg: string) => void): string | number | null {
     if (!value.startsWith('#{faker.') || !value.endsWith('}')) return null;
@@ -35,7 +36,6 @@ export function resolveFakerExpression(value: string, warn: (msg: string) => voi
         }
 
         return String(result);
-
     } catch (error) {
         return null;
     }
@@ -52,7 +52,6 @@ export function isValidFakerExpression(value: string): boolean {
         let result: any = faker as any;
 
         for (const part of parts) {
-
             if (!(part in result)) return false;
 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
@@ -138,8 +137,62 @@ export function suggestFakerAlternative(value: string): string | null {
         }
 
         return null;
-
     } catch {
         return null;
+    }
+}
+
+export async function getFakerForField(sobject: string, field: Field, includedObjects: string[]): Promise<string | null> {
+    switch (field.type) {
+        case 'string':
+        case 'textarea':
+            return '#{faker.lorem.words}';
+        case 'email':
+            return '#{faker.internet.email}';
+        case 'phone':
+            return '#{faker.phone.number}';
+        case 'url':
+            return '#{faker.internet.url}';
+        case 'boolean':
+            return '#{faker.datatype.boolean}';
+        case 'int':
+            return '#{faker.number.int}';
+        case 'double':
+        case 'currency':
+            return '#{faker.finance.amount}';
+        case 'date':
+            return '#{faker.date.past}';
+        case 'datetime':
+            return '#{faker.date.recent}';
+        case 'picklist':
+            if (field.picklistValues && field.picklistValues.length > 0) {
+                const firstValue = field.picklistValues[0].value;
+                return firstValue ? `${firstValue}` : null;
+            }
+            return null;
+        case 'reference':
+            if (field.referenceTo) {
+                const availableRefs = field.referenceTo.filter((obj) => includedObjects.includes(obj) && obj !== sobject);
+                // In above filter we avoid self relation objects
+
+                if (availableRefs.length === 1) {
+
+                    return `@{${availableRefs[0]}.Id}`;
+
+                } else if (availableRefs.length > 1) {
+                    const result = await inquirer.prompt([
+                        {
+                            type: 'list',
+                            name: 'selectedRef',
+                            message: `Multiple reference targets for ${field.name} on ${sobject}. Choose one:`,
+                            choices: availableRefs,
+                        },
+                    ]);
+                    return `@{${result.selectedRef}.Id}`;
+                }
+            }
+            return null;
+        default:
+            return null;
     }
 }

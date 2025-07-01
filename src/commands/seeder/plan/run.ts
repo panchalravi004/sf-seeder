@@ -6,9 +6,10 @@
  */
 
 import * as fs from 'node:fs';
+import * as path from 'node:path';
+import chalk from 'chalk';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection } from '@salesforce/core';
-import chalk from 'chalk';
 import { FieldValue, SeedingStep, SuccessResult } from '../../../types/index.js';
 import { resolveFakerExpression } from '../../../utils/faker.js';
 
@@ -86,8 +87,9 @@ export default class SeederPlanRun extends SfCommand<void> {
         if (isDryRun && !summaryOnly) {
             const dryRunObj = Object.fromEntries(allDryRunOutput);
             if (isDryRunSave) {
-                fs.writeFileSync(isDryRunSave, JSON.stringify(dryRunObj, null, 2));
-                this.log(chalk.green(`💾 Dry run output saved to ${isDryRunSave}`));
+                const outputPath = path.resolve(isDryRunSave);
+                fs.writeFileSync(outputPath, JSON.stringify(dryRunObj, null, 2));
+                this.log(chalk.green(`💾 Dry run output saved to ${outputPath}`));
             } else {
                 this.log(chalk.green('🧪 Dry run output:'));
                 this.log(JSON.stringify(dryRunObj, null, 2));
@@ -104,7 +106,6 @@ export default class SeederPlanRun extends SfCommand<void> {
         referenceMap: Map<string, SuccessResult[]>,
         allDryRunOutput: Map<string, Array<Record<string, FieldValue>>>
     ): Promise<void> {
-
         this.log(`Inserting ${step.count} record(s) into ${step.sobject}...`);
         const records: Array<Record<string, FieldValue>> = [];
 
@@ -151,7 +152,12 @@ export default class SeederPlanRun extends SfCommand<void> {
         }
     }
 
-    private processValue(value: FieldValue, counter: number, isDryRun: boolean, referenceMap: Map<string, SuccessResult[]>): FieldValue {
+    private processValue(
+        value: FieldValue,
+        counter: number,
+        isDryRun: boolean,
+        referenceMap: Map<string, SuccessResult[]>
+    ): FieldValue {
         if (typeof value !== 'string') return value;
 
         const fakerResolved: FieldValue = resolveFakerExpression(value, this.warn.bind(this));

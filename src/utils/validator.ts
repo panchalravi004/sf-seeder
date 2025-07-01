@@ -48,7 +48,6 @@ export async function validateMetadata(
                 warn(`Step ${index + 1}: Field "${field}" does not exist on ${step.sobject}`);
                 hasError = true;
             } else {
-
                 for (const objName of fieldMeta.referenceTo ?? []) {
                     if (!describedObjects.has(objName)) {
                         try {
@@ -64,7 +63,15 @@ export async function validateMetadata(
                     }
                 }
 
-                const valid = validateFieldValueType(`Step ${index + 1}`, field, value, fieldMeta.type, fieldMeta.referenceTo ?? [], prefixMap, warn);
+                const valid = validateFieldValueType(
+                    `Step ${index + 1}`,
+                    field,
+                    value,
+                    fieldMeta.type,
+                    fieldMeta.referenceTo ?? [],
+                    prefixMap,
+                    warn
+                );
 
                 if (!valid) {
                     hasError = true;
@@ -76,10 +83,7 @@ export async function validateMetadata(
     return !hasError;
 }
 
-export function validatePlanStructure(
-    plan: SeedingStep[],
-    warn: (msg: string) => void
-): boolean {
+export function validatePlanStructure(plan: SeedingStep[], warn: (msg: string) => void): boolean {
     let hasError = false;
 
     const referenceMap = new Map<string, boolean>();
@@ -102,7 +106,7 @@ export function validatePlanStructure(
             warn(`Step ${index + 1}: Missing or invalid "fields"`);
             hasError = true;
         } else {
-            Object.keys(step.fields).forEach(field => {
+            Object.keys(step.fields).forEach((field) => {
                 const value = step.fields[field];
 
                 if (typeof value === 'string' && value.startsWith('@{') && value.endsWith('}')) {
@@ -115,7 +119,6 @@ export function validatePlanStructure(
                         hasError = true;
                     }
                 }
-
 
                 // Replace #{faker.*.*}
                 if (typeof value === 'string' && value.startsWith('#{faker.') && value.endsWith('}')) {
@@ -131,7 +134,7 @@ export function validatePlanStructure(
                         hasError = true;
                     }
                 }
-            })
+            });
         }
     }
 
