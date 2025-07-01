@@ -1,149 +1,146 @@
-**NOTE: This template for sf plugins is not yet official. Please consult with the Platform CLI team before using this template.**
+# 🌱 @ravi004/sf-seeder
 
-# plugin-seeder
+A powerful Salesforce CLI plugin to seed data into your org using flexible, JSON-based data plans. Define your data relationships, use Faker for generating realistic values, reference records dynamically, and ensure your test orgs are always ready.
 
 [![NPM](https://img.shields.io/npm/v/@ravi004/sf-seeder.svg?label=@ravi004/sf-seeder)](https://www.npmjs.com/package/@ravi004/sf-seeder) [![Downloads/week](https://img.shields.io/npm/dw/@ravi004/sf-seeder.svg)](https://npmjs.org/package/@ravi004/sf-seeder) [![License](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/license/apache-2-0)
 
-## Using the template
+---
 
-This repository provides a template for creating a plugin for the Salesforce CLI. To convert this template to a working plugin:
-
-1. Please get in touch with the Platform CLI team. We want to help you develop your plugin.
-2. Generate your plugin:
-
-   ```
-   sf plugins install dev
-   sf dev generate plugin
-
-   git init -b main
-   git add . && git commit -m "chore: initial commit"
-   ```
-
-3. Create your plugin's repo in the salesforcecli github org
-4. When you're ready, replace the contents of this README with the information you want.
-
-## Learn about `sf` plugins
-
-Salesforce CLI plugins are based on the [oclif plugin framework](https://oclif.io/docs/introduction). Read the [plugin developer guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_cli_plugins.meta/sfdx_cli_plugins/cli_plugins_architecture_sf_cli.htm) to learn about Salesforce CLI plugin development.
-
-This repository contains a lot of additional scripts and tools to help with general Salesforce node development and enforce coding standards. You should familiarize yourself with some of the [node developer packages](#tooling) used by Salesforce. There is also a default circleci config using the [release management orb](https://github.com/forcedotcom/npm-release-management-orb) standards.
-
-Additionally, there are some additional tests that the Salesforce CLI will enforce if this plugin is ever bundled with the CLI. These test are included by default under the `posttest` script and it is required to keep these tests active in your plugin if you plan to have it bundled.
-
-### Tooling
-
-- [@salesforce/core](https://github.com/forcedotcom/sfdx-core)
-- [@salesforce/kit](https://github.com/forcedotcom/kit)
-- [@salesforce/sf-plugins-core](https://github.com/salesforcecli/sf-plugins-core)
-- [@salesforce/ts-types](https://github.com/forcedotcom/ts-types)
-- [@salesforce/ts-sinon](https://github.com/forcedotcom/ts-sinon)
-- [@salesforce/dev-config](https://github.com/forcedotcom/dev-config)
-- [@salesforce/dev-scripts](https://github.com/forcedotcom/dev-scripts)
-
-# Everything past here is only a suggestion as to what should be in your specific plugin's description
-
-This plugin is bundled with the [Salesforce CLI](https://developer.salesforce.com/tools/sfdxcli). For more information on the CLI, read the [getting started guide](https://developer.salesforce.com/docs/atlas.en-us.sfdx_setup.meta/sfdx_setup/sfdx_setup_intro.htm).
-
-We always recommend using the latest version of these commands bundled with the CLI, however, you can install a specific version or tag if needed.
-
-## Install
+## 📦 Installation
 
 ```bash
-sf plugins install @ravi004/sf-seeder@x.y.z
+sf plugins install @ravi004/sf-seeder
 ```
 
-## Issues
+---
 
-Please report any issues at https://github.com/forcedotcom/cli/issues
+## 🚀 Commands
 
-## Contributing
+### ▶️ `sf seeder:plan:run`
 
-1. Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
-2. Create a new issue before starting your project so that we can keep track of
-   what you are trying to add/fix. That way, we can also offer suggestions or
-   let you know if there is already an effort in progress.
-3. Fork this repository.
-4. [Build the plugin locally](#build)
-5. Create a _topic_ branch in your fork. Note, this step is recommended but technically not required if contributing using a fork.
-6. Edit the code in your fork.
-7. Write appropriate tests for your changes. Try to achieve at least 95% code coverage on any new code. No pull request will be accepted without unit tests.
-8. Sign CLA (see [CLA](#cla) below).
-9. Send us a pull request when you are done. We'll review your code, suggest any needed changes, and merge it in.
+Run a seeding plan to insert dummy or mock data into a Salesforce org.
 
-### CLA
+#### Flags
 
-External contributors will be required to sign a Contributor's License
-Agreement. You can do so by going to https://cla.salesforce.com/sign-cla.
+| Flag            | Type    | Required | Description                                      |
+| --------------- | ------- | -------- | ------------------------------------------------ |
+| `--target-org`  | org     | ✅       | Salesforce org alias or username                 |
+| `--plan, -p`    | file    | ✅       | Path to JSON plan file                           |
+| `--dryrun`      | boolean | ❌       | Run the plan without actual insertion            |
+| `--save`        | string  | ❌       | File path to save dryrun output                  |
+| `--summaryonly` | boolean | ❌       | Show only summary (must be used with `--dryrun`) |
 
-### Build
-
-To build the plugin locally, make sure to have yarn installed and run the following commands:
+#### Example
 
 ```bash
-# Clone the repository
-git clone git@github.com:salesforcecli/plugin-seeder
-
-# Install the dependencies and compile
-yarn && yarn build
+sf seeder:plan:run --target-org MYORG --plan ./my-first-plan.json --dryrun --save output.json
 ```
 
-To use your plugin, run using the local `./bin/dev` or `./bin/dev.cmd` file.
+---
+
+### ✅ `sf seeder:plan:validate`
+
+Validate the structure and correctness of a seeding plan before executing.
+
+#### Flags
+
+| Flag                  | Type    | Required | Description                                         |
+| --------------------- | ------- | -------- | --------------------------------------------------- |
+| `--target-org`        | org     | ✅       | Salesforce org alias or username                    |
+| `--plan, -p`          | file    | ✅       | Path to JSON plan file                              |
+| `--validate-metadata` | boolean | ❌       | Validate field names and lookups using org metadata |
+
+#### Example
 
 ```bash
-# Run using local run file.
-./bin/dev hello world
+sf seeder:plan:validate --target-org MYORG --plan ./my-first-plan.json
 ```
 
-There should be no differences when running via the Salesforce CLI or using the local run file. However, it can be useful to link the plugin to do some additional testing or run your commands from anywhere on your machine.
+Use `--validate-metadata` to also validate against metadata.
+
+---
+
+### 🛠 `sf seeder:plan:generate`
+
+Automatically generate a starter seeding plan for selected objects.
+
+#### Flags
+
+| Flag           | Type    | Required | Description                                     |
+| -------------- | ------- | -------- | ----------------------------------------------- |
+| `--target-org` | org     | ✅       | Salesforce org alias or username                |
+| `--objects`    | string  | ✅       | Comma-separated list of SObjects to include     |
+| `--count`      | integer | ❌       | Number of records per object (default: 3)       |
+| `--output`     | string  | ❌       | Output file name (default: `seeding-plan.json`) |
+
+#### Example
 
 ```bash
-# Link your plugin to the sf cli
-sf plugins link .
-# To verify
-sf plugins
+sf seeder:plan:generate --target-org MYORG --objects Opportunity,Contact --count 3 --output plan.json
 ```
 
-## Commands
+---
 
-<!-- commands -->
+## 📄 Sample Plan
 
-- [`sf hello world`](#sf-hello-world)
-
-## `sf hello world`
-
-Say hello.
-
+```json
+[
+  {
+    "sobject": "Account",
+    "count": 1,
+    "saveRefs": true,
+    "fields": {
+      "Name": "#{faker.company.name}",
+      "Industry": "Technology",
+      "AnnualRevenue": 50000000
+    }
+  },
+  {
+    "sobject": "Contact",
+    "count": 1,
+    "saveRefs": false,
+    "fields": {
+      "LastName": "User-#{counter}",
+      "FirstName": "Test",
+      "Email": "test.user.#{counter}@globaltech.demo",
+      "AccountId": "@{Account.Id}"
+    }
+  },
+  {
+    "sobject": "Opportunity",
+    "count": 1,
+    "saveRefs": false,
+    "fields": {
+      "Name": "Major Deal #{counter}",
+      "AccountId": "@{Account.Id}",
+      "StageName": "Prospecting",
+      "CloseDate": "2025-12-31",
+      "Amount": 150000
+    }
+  }
+]
 ```
-USAGE
-  $ sf hello world [--json] [--flags-dir <value>] [-n <value>]
 
-FLAGS
-  -n, --name=<value>  [default: World] The name of the person you'd like to say hello to.
+---
 
-GLOBAL FLAGS
-  --flags-dir=<value>  Import flag values from a directory.
-  --json               Format output as json.
+## 🔧 Features
 
-DESCRIPTION
-  Say hello.
+- 🌟 Supports dynamic values using [Faker.js](https://fakerjs.dev)
+- 🔁 Use `#{counter}` to create unique values
+- 🔗 Reference previously created records using `@{SObject.Field}`
+- 🧪 Dryrun to preview changes
+- ✅ Validate plan structure and fields
+- ⚙️ Auto-generate seed plans with required lookups
 
-  Say hello either to the world or someone you know.
+---
 
-EXAMPLES
-  Say hello to the world:
+## 📚 Best Practices
 
-    $ sf hello world
+- Use `--dryrun --summaryonly` together to quickly assess the impact.
+- Validate your plan before running it with `plan:validate`.
+- Use `saveRefs: true` in the plan to reference records between objects.
+- Use `faker` for realistic test data and `#{counter}` for uniqueness.
 
-  Say hello to someone you know:
+---
 
-    $ sf hello world --name Astro
-
-FLAG DESCRIPTIONS
-  -n, --name=<value>  The name of the person you'd like to say hello to.
-
-    This person can be anyone in the world!
-```
-
-_See code: [src/commands/hello/world.ts](https://github.com/salesforcecli/plugin-seeder/blob/1.1.50/src/commands/hello/world.ts)_
-
-<!-- commandsstop -->
+Happy Seeding! 🌱✨
