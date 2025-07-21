@@ -1,15 +1,17 @@
 {
   "name": "@ravi004/sf-seeder",
   "description": "Use this plugin to generate dummy testing data",
-  "version": "1.1.4",
+  "version": "1.2.5",
   "author": "@ravi004",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
     "@faker-js/faker": "^9.8.0",
+    "@jsforce/jsforce-node": "^3.9.1",
     "@oclif/core": "^4",
     "@salesforce/core": "^8.14.0",
     "@salesforce/kit": "^3.2.1",
     "@salesforce/sf-plugins-core": "^12",
+    "@types/jsforce": "^1.11.5",
     "chalk": "^5.4.1",
     "inquirer": "^12.6.3"
   },
@@ -18,7 +20,6 @@
     "@salesforce/cli-plugins-testkit": "^5.3.39",
     "@salesforce/dev-scripts": "^11.0.2",
     "@salesforce/plugin-command-reference": "^3.1.57",
-    "@types/jsforce": "^1.11.5",
     "eslint-plugin-sf-plugin": "^1.20.26",
     "oclif": "^4.20.0",
     "ts-node": "^10.9.2",

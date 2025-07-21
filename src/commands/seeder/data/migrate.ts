@@ -8,9 +8,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
+import { DescribeSObjectResult } from '@jsforce/jsforce-node';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection } from '@salesforce/core';
-import { MigrationPlan } from '../../../types/index.js';
+import { MigrationPlan, FieldValue } from '../../../types/index.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url)
 const messages = Messages.loadMessages('@ravi004/sf-seeder', 'seeder.data.migrate');
@@ -38,6 +39,8 @@ export default class SeederDataMigrate extends SfCommand<void> {
         }),
     };
 
+    private describeCache: Record<string, DescribeSObjectResult> = {};
+
     public async run(): Promise<void> {
         const { flags } = await this.parse(SeederDataMigrate);
 
@@ -63,43 +66,69 @@ export default class SeederDataMigrate extends SfCommand<void> {
         this.log('✅ Data migration completed!');
     }
 
-    public async runMigrationPlan(sourceConn: Connection, targetConn: Connection, plan: MigrationPlan): Promise<void> {
+    private async runMigrationPlan(sourceConn: Connection, targetConn: Connection, plan: MigrationPlan): Promise<void> {
+        const idMapBySObject: Record<string, Map<string, string>> = {};
+
         for (const obj of plan.objects) {
             try {
                 this.log(`🔍 Validating query for ${obj.sobject}`);
 
-                if (!obj.query) throw new Error('Query Must Be Define In Plan!');
+                if (!obj.query) throw new Error('Query must be defined in the plan.');
 
                 // eslint-disable-next-line no-await-in-loop
-                const { cleanedQuery } = await this.sanitizeSOQLQuery(targetConn, obj.query);
+                const { cleanedQuery, keptFields } = await this.sanitizeSOQLQuery(targetConn, obj.query);
+                // eslint-disable-next-line no-await-in-loop
+                const referenceFieldMap = await this.getReferenceFieldMap(sourceConn, obj.sobject, keptFields);
 
                 // eslint-disable-next-line no-await-in-loop
                 const records = await sourceConn.query(cleanedQuery);
-
                 this.log(`📦 Retrieved ${records.totalSize} records from ${obj.sobject}`);
 
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                const cleanedRecords = records.records.map(({ Id, attributes, ...rest }) => rest);
+                const sourceToInsert: Array<Record<string, FieldValue>> = [];
+                const idMap = new Map<string, string>();
 
-                this.log(`🚚 Inserting ${cleanedRecords.length} ${obj.sobject} into target org...`);
+                for (const record of records.records) {
+                    const originalId = record['Id'] as string;
+                    const clone = { ...record };
+                    delete clone.Id; delete clone.attributes;
+
+                    // eslint-disable-next-line no-await-in-loop
+                    await this.resolveReferencesWithFieldMap(sourceConn, clone, referenceFieldMap, idMapBySObject);
+
+                    sourceToInsert.push(clone);
+                    idMap.set(originalId, ''); // temp placeholder
+                }
+
+                this.log(`🚚 Inserting ${sourceToInsert.length} ${obj.sobject} into target org...`);
+
                 // eslint-disable-next-line no-await-in-loop
-                const insertResults = await targetConn.insert(obj.sobject, cleanedRecords);
+                const insertResults = await targetConn.insert(obj.sobject, sourceToInsert);
 
+                insertResults.forEach((result, index) => {
+                    const oldId = Array.from(idMap.keys())[index];
+                    if (result.success) {
+                        idMap.set(oldId, result.id);
+                    } else {
+                        this.log(`[!] Failed to insert ${obj.sobject} record (${oldId}): ${result.errors?.join(', ')}`);
+                    }
+                });
+
+                idMapBySObject[obj.sobject] = idMap;
                 const successCount = insertResults.filter(r => r.success).length;
-                this.log(`✅ Inserted ${successCount}/${cleanedRecords.length} records into ${obj.sobject}`);
 
+                this.log(`✅ Inserted ${successCount}/${sourceToInsert.length} records into ${obj.sobject}`);
             } catch (error) {
                 const message = error instanceof Error ? error.message : 'Unknown error';
-
                 this.error(`❌ Error with ${obj.sobject}: ${message}`);
             }
         }
     }
 
-    public async sanitizeSOQLQuery(
+
+    private async sanitizeSOQLQuery(
         conn: Connection,
         soql: string
-    ): Promise<{ cleanedQuery: string; skippedFields: string[] }> {
+    ): Promise<{ cleanedQuery: string; keptFields: string[] }> {
         const match = soql.match(/SELECT\s+(.+?)\s+FROM\s+(\w+)/i);
         if (!match) throw new Error(`Invalid SOQL: ${soql}`);
 
@@ -107,7 +136,10 @@ export default class SeederDataMigrate extends SfCommand<void> {
         const sobject = match[2];
 
         const fields = fieldListRaw.split(',').map(f => f.trim());
-        const describe = await conn.sobject(sobject).describe();
+        if (!this.describeCache[sobject]) {
+            this.describeCache[sobject] = await conn.sobject(sobject).describe();
+        }
+        const describe = this.describeCache[sobject];
 
         const editableFields = new Set(
             describe.fields
@@ -134,6 +166,69 @@ export default class SeederDataMigrate extends SfCommand<void> {
         }
 
         const cleanedQuery = `SELECT ${kept.join(', ')} FROM ${sobject}`;
-        return { cleanedQuery, skippedFields: skipped };
+        return { cleanedQuery, keptFields: kept };
     }
+
+    private async getReferenceFieldMap(
+        conn: Connection,
+        sobject: string,
+        keptFields: string[]
+    ): Promise<Record<string, string[]>> {
+        if (!this.describeCache[sobject]) {
+            this.describeCache[sobject] = await conn.sobject(sobject).describe();
+        }
+
+        const fieldMap: Record<string, string[]> = {};
+
+        for (const fieldName of keptFields) {
+            const fieldMeta = this.describeCache[sobject].fields.find(f => f.name === fieldName);
+            if (fieldMeta && fieldMeta.type === 'reference' && fieldMeta.referenceTo) {
+                fieldMap[fieldName] = fieldMeta.referenceTo;
+            }
+        }
+
+        return fieldMap;
+    }
+
+    private async resolveReferencesWithFieldMap(
+        conn: Connection,
+        record: Record<string, FieldValue>,
+        referenceFieldMap: Record<string, string[]>,
+        idMapBySObject: Record<string, Map<string, string>>
+    ): Promise<void> {
+        for (const [fieldName, value] of Object.entries(record)) {
+            if (!value || typeof value !== 'string' || !value.startsWith('0')) continue;
+
+            const possibleObjects = referenceFieldMap[fieldName];
+            if (!possibleObjects) continue;
+
+            let referencedObject: string | undefined;
+
+            if (possibleObjects.length === 1) {
+                referencedObject = possibleObjects[0];
+            } else {
+                const idPrefix = value.substring(0, 3);
+                for (const obj of possibleObjects) {
+                    if (!this.describeCache[obj]) {
+                        // eslint-disable-next-line no-await-in-loop
+                        this.describeCache[obj] = await conn.sobject(obj).describe();
+                    }
+                    if (this.describeCache[obj].keyPrefix === idPrefix) {
+                        referencedObject = obj;
+                        break;
+                    }
+                }
+            }
+
+            if (referencedObject && idMapBySObject[referencedObject]) {
+                const mappedId = idMapBySObject[referencedObject].get(value);
+                if (mappedId) {
+                    record[fieldName] = mappedId;
+                }
+            }
+        }
+    }
+
+
+
 }

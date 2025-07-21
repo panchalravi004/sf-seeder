@@ -1526,10 +1526,10 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
-"@jsforce/jsforce-node@^3.8.2":
-  version "3.8.2"
-  resolved "https://registry.npmjs.org/@jsforce/jsforce-node/-/jsforce-node-3.8.2.tgz"
-  integrity sha512-ewaRr9JnZRW6I28C/TzUnv5p70zMrWsKCq2ovRW6X557/ikdfvA24F9k4cQXZnTG2lZLEfVn+WwdBGEtY7pPnQ==
+"@jsforce/jsforce-node@^3.8.2", "@jsforce/jsforce-node@^3.9.1":
+  version "3.9.1"
+  resolved "https://registry.npmjs.org/@jsforce/jsforce-node/-/jsforce-node-3.9.1.tgz"
+  integrity sha512-tHG9Wozb9tQMiOyKz4MgcSK0XEDdER+dUm42o7qUaokwqC+IPmjgptx0PNTO75U1nqgW6yX6M5Qq1thhj7KMCA==
   dependencies:
     "@sindresorhus/is" "^4"
     base64url "^3.0.1"
