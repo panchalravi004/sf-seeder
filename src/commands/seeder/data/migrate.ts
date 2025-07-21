@@ -68,8 +68,10 @@ export default class SeederDataMigrate extends SfCommand<void> {
             try {
                 this.log(`🔍 Validating query for ${obj.sobject}`);
 
+                if (!obj.query) throw new Error('Query Must Be Define In Plan!');
+
                 // eslint-disable-next-line no-await-in-loop
-                const { cleanedQuery } = await this.sanitizeSOQLQuery(targetConn, obj.query ?? `SELECT FIELDS(ALL) FROM ${obj.sobject}`);
+                const { cleanedQuery } = await this.sanitizeSOQLQuery(targetConn, obj.query);
 
                 // eslint-disable-next-line no-await-in-loop
                 const records = await sourceConn.query(cleanedQuery);
