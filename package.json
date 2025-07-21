@@ -1,7 +1,7 @@
 {
   "name": "@ravi004/sf-seeder",
   "description": "Use this plugin to generate dummy testing data",
-  "version": "1.0.4",
+  "version": "1.1.4",
   "author": "@ravi004",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
