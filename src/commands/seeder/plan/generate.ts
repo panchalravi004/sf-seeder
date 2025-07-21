@@ -5,7 +5,6 @@
  * For full license text, see LICENSE.txt file in the repo root or https://opensource.org/licenses/BSD-3-Clause
  */
 
-
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
@@ -92,9 +91,8 @@ export default class SeederPlanGenerate extends SfCommand<void> {
     }
 
     private async getSmartOrderedPlan(originalPlan: SeedingStep[]): Promise<SeedingStep[]> {
-
-        const sObjectDepGraph = new Map<string, Map<string, string>>(); // SOBJECT    -> DEPENDANCY
-        const depSobjectGraph = new Map<string, Set<string>>();         // DEPENDANCY -> SOBJECT
+        const sObjectDepGraph = new Map<string, Map<string, string>>(); // SOBJECT    -> [FIELD <-> DEPENDANCY]
+        const depSobjectGraph = new Map<string, Set<string>>(); // DEPENDANCY -> SOBJECT
 
         for (const step of originalPlan) {
             const deps = new Map<string, string>();
@@ -114,12 +112,12 @@ export default class SeederPlanGenerate extends SfCommand<void> {
         // 🧠 Prompt user to resolve cyclic references (if any)
         const cycleToRemove: string[] = await this.detectCyclesAndPrompt(sObjectDepGraph, depSobjectGraph);
         for (const cycle of cycleToRemove) {
-            const [from, field, to,] = cycle.trim().split('->');
+            const [from, field, to] = cycle.trim().split('->');
             if (sObjectDepGraph.get(from.trim())) sObjectDepGraph.get(from.trim())?.delete(field.trim());
             if (depSobjectGraph.get(to.trim())) depSobjectGraph.get(to.trim())?.delete(from.trim());
             if (depSobjectGraph.get(to.trim())?.size === 0) depSobjectGraph.delete(to.trim());
 
-            const plan = originalPlan.find(item => item.sobject === from.trim());
+            const plan = originalPlan.find((item) => item.sobject === from.trim());
             if (plan?.fields) delete plan.fields[field.trim()];
         }
 
@@ -132,7 +130,9 @@ export default class SeederPlanGenerate extends SfCommand<void> {
         const tempMark = new Set<string>();
 
         function visit(node: string): void {
-            if (tempMark.has(node)) { throw new Error(`Cyclic dependency detected with ${node}`) };
+            if (tempMark.has(node)) {
+                throw new Error(`Cyclic dependency detected with ${node}`);
+            }
             if (!visited.has(node)) {
                 tempMark.add(node);
                 const deps = sObjectDepGraph.get(node) ?? new Set();
@@ -143,20 +143,23 @@ export default class SeederPlanGenerate extends SfCommand<void> {
                 visited.add(node);
                 sortedSObjects.push(node);
             }
-        };
+        }
 
         for (const node of sObjectDepGraph.keys()) {
             visit(node);
         }
 
-        const sortedPlan = sortedSObjects.map((objName) => originalPlan.find((p) => p.sobject === objName)).filter((p): p is SeedingStep => p !== undefined);
+        const sortedPlan = sortedSObjects
+            .map((objName) => originalPlan.find((p) => p.sobject === objName))
+            .filter((p): p is SeedingStep => p !== undefined);
 
         return sortedPlan;
-
     }
 
-    private async detectCyclesAndPrompt(sObjectDepGraph: Map<string, Map<string, string>>, depSobjectGraph: Map<string, Set<string>>): Promise<string[]> {
-
+    private async detectCyclesAndPrompt(
+        sObjectDepGraph: Map<string, Map<string, string>>,
+        depSobjectGraph: Map<string, Set<string>>
+    ): Promise<string[]> {
         const cyclicDependancy: Array<Map<string, string>> = [];
         const groupMap = new Map<string, Array<{ from: string; field: string; to: string }>>();
 
@@ -191,7 +194,6 @@ export default class SeederPlanGenerate extends SfCommand<void> {
         const selectedRemovals: Set<string> = new Set();
 
         for (const [groupKey, relations] of groupMap.entries()) {
-
             this.log(`\n🔁 Cyclic Reference Detected in Group: ${groupKey.replace('__', ' ⇄ ')}`);
 
             const choices: string[] = [];
@@ -206,7 +208,7 @@ export default class SeederPlanGenerate extends SfCommand<void> {
                     name: 'toRemove',
                     message: 'Select one object to remove to break this cycle:',
                     choices,
-                }
+                },
             ]);
 
             selectedRemovals.add(result.toRemove as string);
@@ -214,5 +216,4 @@ export default class SeederPlanGenerate extends SfCommand<void> {
 
         return Array.from(selectedRemovals);
     }
-
 }

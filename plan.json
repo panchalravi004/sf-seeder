@@ -1,0 +1,8 @@
+{
+  "objects": [
+    {
+      "sobject": "Account",
+      "query": "SELECT Id, Name, CreatedDate FROM Account LIMIT 2"
+    }
+  ]
+}

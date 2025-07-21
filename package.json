@@ -65,6 +65,9 @@
           "plan": {
             "description": "description for seeder.plan",
             "external": true
+          },
+          "data": {
+            "description": "description for seeder.data"
           }
         },
         "external": true
