@@ -1,7 +1,7 @@
 {
   "name": "@ravi004/sf-seeder",
-  "description": "Use this plugin to generate dummy testing data",
-  "version": "1.2.5",
+  "description": "Powerfull Data Seeding & Migration Tool",
+  "version": "1.3.0",
   "author": "@ravi004",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
@@ -57,18 +57,15 @@
       "@salesforce/plugin-command-reference"
     ],
     "topics": {
-      "hello": {
-        "description": "Commands to say hello."
-      },
       "seeder": {
-        "description": "description for seeder",
+        "description": "Powerfull Data Seeding & Migration Tool",
         "subtopics": {
           "plan": {
-            "description": "description for seeder.plan",
+            "description": "Generate Plan, Validate Plan, And Run Plan.",
             "external": true
           },
           "data": {
-            "description": "description for seeder.data"
+            "description": "Migrate Data From Source ORG To Target ORG."
           }
         },
         "external": true

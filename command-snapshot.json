@@ -1,7 +1,31 @@
 [
   {
     "alias": [],
-    "command": "hello:world",
+    "command": "seeder:data:migrate",
+    "flagAliases": [],
+    "flagChars": ["n"],
+    "flags": ["flags-dir", "json", "name"],
+    "plugin": "@ravi004/sf-seeder"
+  },
+  {
+    "alias": [],
+    "command": "seeder:plan:generate",
+    "flagAliases": [],
+    "flagChars": ["n"],
+    "flags": ["flags-dir", "json", "name"],
+    "plugin": "@ravi004/sf-seeder"
+  },
+  {
+    "alias": [],
+    "command": "seeder:plan:validate",
+    "flagAliases": [],
+    "flagChars": ["n"],
+    "flags": ["flags-dir", "json", "name"],
+    "plugin": "@ravi004/sf-seeder"
+  },
+  {
+    "alias": [],
+    "command": "seeder:plan:run",
     "flagAliases": [],
     "flagChars": ["n"],
     "flags": ["flags-dir", "json", "name"],
