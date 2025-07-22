@@ -76,7 +76,7 @@ export default class SeederDataMigrate extends SfCommand<void> {
                 if (!obj.query) throw new Error('Query must be defined in the plan.');
 
                 // eslint-disable-next-line no-await-in-loop
-                const { cleanedQuery, keptFields } = await this.sanitizeSOQLQuery(targetConn, obj.query);
+                const { cleanedQuery, keptFields } = await this.sanitizeSOQLQuery(sourceConn, obj.query);
                 // eslint-disable-next-line no-await-in-loop
                 const referenceFieldMap = await this.getReferenceFieldMap(sourceConn, obj.sobject, keptFields);
 
@@ -155,11 +155,12 @@ export default class SeederDataMigrate extends SfCommand<void> {
                 kept.push(field);
             } else {
                 const info = describe.fields.find(f => f.name === field);
-                const reason = info?.calculated
+                const reason = info ? info?.calculated
                     ? 'Formula field'
                     : info?.custom
                         ? 'Custom non-editable'
-                        : 'Standard non-editable';
+                        : 'Standard non-editable'
+                    : 'Invalid Field';
                 this.log(`[!] Skipped field "${field}" on "${sobject}" - ${reason}`);
                 skipped.push(field);
             }
@@ -179,11 +180,20 @@ export default class SeederDataMigrate extends SfCommand<void> {
         }
 
         const fieldMap: Record<string, string[]> = {};
+        const referenceObj: Set<string> = new Set<string>();
 
         for (const fieldName of keptFields) {
             const fieldMeta = this.describeCache[sobject].fields.find(f => f.name === fieldName);
             if (fieldMeta && fieldMeta.type === 'reference' && fieldMeta.referenceTo) {
                 fieldMap[fieldName] = fieldMeta.referenceTo;
+                fieldMeta.referenceTo?.forEach(item => referenceObj.add(item));
+            }
+        }
+
+        for (const obj of referenceObj) {
+            if (!this.describeCache[obj]) {
+                // eslint-disable-next-line no-await-in-loop
+                this.describeCache[obj] = await conn.sobject(obj).describe();
             }
         }
 
@@ -228,7 +238,5 @@ export default class SeederDataMigrate extends SfCommand<void> {
             }
         }
     }
-
-
 
 }
