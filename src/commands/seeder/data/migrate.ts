@@ -101,8 +101,14 @@ export default class SeederDataMigrate extends SfCommand<void> {
 
                 this.log(`🚚 Inserting ${sourceToInsert.length} ${obj.sobject} into target org...`);
 
-                // eslint-disable-next-line no-await-in-loop
-                const insertResults = await targetConn.insert(obj.sobject, sourceToInsert);
+                let insertResults;
+                if (obj.operation && obj.operation === 'Upsert' && obj.externalId) {
+                    // eslint-disable-next-line no-await-in-loop
+                    insertResults = await targetConn.upsert(obj.sobject, sourceToInsert, obj.externalId);
+                } else {
+                    // eslint-disable-next-line no-await-in-loop
+                    insertResults = await targetConn.insert(obj.sobject, sourceToInsert);
+                }
 
                 insertResults.forEach((result, index) => {
                     const oldId = Array.from(idMap.keys())[index];

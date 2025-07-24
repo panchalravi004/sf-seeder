@@ -81,7 +81,27 @@ sf seeder:plan:generate --target-org MYORG --objects Opportunity,Contact --count
 
 ---
 
-## 📄 Sample Plan
+### 📁 `sf seeder:data:migrate`
+
+Migrate data from source ORG to target ORG for selected SOQL and sobject fields in SOQL.
+
+#### Flags
+
+| Flag               | Type | Required | Description                             |
+| ------------------ | ---- | -------- | --------------------------------------- |
+| `--source-org, -s` | org  | ✅       | Salesforce source org alias or username |
+| `--target-org, -t` | org  | ✅       | Salesforce target org alias or username |
+| `--plan, -p`       | file | ✅       | Path to JSON plan file                  |
+
+#### Example
+
+```bash
+sf seeder:data:migrate --source-org MY_SOURCE_ORG --target-org MY_TARGET_ORG --plan plan.json
+```
+
+---
+
+## 📄 Sample Seed Plan
 
 ```json
 [
@@ -121,6 +141,25 @@ sf seeder:plan:generate --target-org MYORG --objects Opportunity,Contact --count
 ]
 ```
 
+## 📄 Sample Migrate Plan
+
+```json
+{
+  "objects": [
+    {
+      "operation": "Upsert",
+      "sobject": "Account",
+      "query": "SELECT Id, Name, External_Id__c FROM Account LIMIT 2",
+      "externalId": "External_Id__c"
+    },
+    {
+      "sobject": "Contact", // Default Insert Operation
+      "query": "SELECT Id, Name, Email FROM Contact LIMIT 2"
+    }
+  ]
+}
+```
+
 ---
 
 ## 🔧 Features
@@ -131,6 +170,7 @@ sf seeder:plan:generate --target-org MYORG --objects Opportunity,Contact --count
 - 🧪 Dryrun to preview changes
 - ✅ Validate plan structure and fields
 - ⚙️ Auto-generate seed plans with required lookups
+- 📁 Migrate data between different Salesforce ORG
 
 ---
 
