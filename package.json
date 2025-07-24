@@ -1,7 +1,7 @@
 {
   "name": "@ravi004/sf-seeder",
   "description": "Powerfull Data Seeding & Migration Tool",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "author": "@ravi004",
   "bugs": "https://github.com/forcedotcom/cli/issues",
   "dependencies": {
